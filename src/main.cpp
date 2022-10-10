@@ -18,7 +18,6 @@ const byte D4 = 4;
 const byte D5 = 5;
 const byte D6 = 6;
 const byte D7 = 7;
-const byte SCREEN = 10; // Backlight
 
 LiquidCrystal lcd(RS, ENABLE, D4, D5, D6, D7);
 
