@@ -2,8 +2,7 @@
 #include <LiquidCrystal.h>
 
 #define BTN_WAKE 1 << PD3
-#define BTN_WAKE_PIN 18
-#define BTN_WAKE_IS_PRESSED (PIND & BTN_WAKE) == 0
+#define btnWakeIsPressed() (PIND & BTN_WAKE) == 0
 #define BTN_MODE 1 << PD2
 #define BTN_MODE_PIN 19
 #define BTN_PGM 1 << PD1
@@ -68,7 +67,7 @@ void displayPgm(LiquidCrystal lcd, selMode_t selMode, int selPgm)
 
 void changeMode()
 {
-    if (BTN_WAKE_IS_PRESSED)
+    if (btnWakeIsPressed())
     {
         selMode = selMode == AUTO ? MANUAL : AUTO;
         displayMode(lcd, selMode);
@@ -79,7 +78,7 @@ void changeMode()
 
 void changePgm()
 {
-    if (BTN_WAKE_IS_PRESSED && selMode == AUTO)
+    if (btnWakeIsPressed() && selMode == AUTO)
     {
         selPgm = (selPgm % 12) + 1; // Min 1, max 12
         displayPgm(lcd, selMode, selPgm);
@@ -99,6 +98,7 @@ void setup()
     Serial.begin(115200);
     attachInterrupt(digitalPinToInterrupt(BTN_MODE_PIN), changeMode, FALLING);
     attachInterrupt(digitalPinToInterrupt(BTN_PGM_PIN), changePgm, FALLING);
+
     lcd.begin(COLS, ROWS);
     lcd.write("TP3 - IoT");
     backlightOn();
@@ -109,12 +109,12 @@ void setup()
 void loop()
 {
     // Éteins l'écran après 5 secondes d'inactivité
-    if (!BTN_WAKE_IS_PRESSED && millis() - prevTime > SLEEP_DELAY)
+    if (!btnWakeIsPressed() && millis() - prevTime > SLEEP_DELAY)
     {
         backlightOff();
     }
 
-    while (BTN_WAKE_IS_PRESSED)
+    while (btnWakeIsPressed())
     {
         backlightOn();
         prevTime = millis();
