@@ -2,6 +2,18 @@
 #include <LiquidCrystal.h>
 #include "buttons.h"
 
+#define BTN_WAKE 1 << PD3
+#define BTN_WAKE_PIN 18
+#define BTN_WAKE_IS_PRESSED (PIND & BTN_WAKE) == 0
+#define BTN_MODE 1 << PD2
+#define BTN_MODE_PIN 19
+#define BTN_PGM 1 << PD1
+#define BTN_PGM_PIN 20
+
+#define BACKLIGHT 1 << PB4 // Pin 10
+#define backlightOn() PORTB |= BACKLIGHT
+#define backlightOff() PORTB &= ~BACKLIGHT
+
 const byte RS = 8;
 const byte ENABLE = 9;
 const byte D4 = 4;
@@ -31,12 +43,12 @@ byte selPgm = 1;
 
 selMode_t selMode = MANUAL;
 
-boolean btnWake_isBeingPressed = false;
-boolean btnMode_isBeingPressed = false;
-boolean btnPgm_isBeingPressed = false;
-button_t btnWake = {42, &btnWake_isBeingPressed};
-button_t btnMode = {43, &btnMode_isBeingPressed};
-button_t btnPgm = {44, &btnPgm_isBeingPressed};
+// boolean btnWake_isBeingPressed = false;
+// boolean btnMode_isBeingPressed = false;
+// boolean btnPgm_isBeingPressed = false;
+// button_t btnWake = {42, &btnWake_isBeingPressed};
+// button_t btnMode = {43, &btnMode_isBeingPressed};
+// button_t btnPgm = {44, &btnPgm_isBeingPressed};
 
 void displayMode(LiquidCrystal lcd, selMode_t selMode)
 {
@@ -62,18 +74,43 @@ void displayPgm(LiquidCrystal lcd, selMode_t selMode, int selPgm)
     }
 }
 
+void changeMode()
+{
+    if (BTN_WAKE_IS_PRESSED)
+    {
+        selMode = selMode == AUTO ? MANUAL : AUTO;
+        displayMode(lcd, selMode);
+        displayPgm(lcd, selMode, selPgm);
+        delay(1000);
+    }
+}
+
+void changePgm()
+{
+    if (BTN_WAKE_IS_PRESSED && selMode == AUTO)
+    {
+        selPgm = (selPgm % 12) + 1; // Min 1, max 12
+        displayPgm(lcd, selMode, selPgm);
+        delay(1000);
+    }
+}
+
 void setup()
 {
     lcd.begin(COLS, ROWS);
-    pinMode(SCREEN, OUTPUT);
 
-    pinMode(btnWake.pin, INPUT_PULLUP);
-    pinMode(btnMode.pin, INPUT_PULLUP);
-    pinMode(btnPgm.pin, INPUT_PULLUP);
+    const byte BTN_MASK = (BTN_WAKE | BTN_MODE | BTN_PGM); // == 0b11100000
+
+    DDRD |= BTN_MASK;  // Mis à "output"
+    PORTD |= BTN_MASK; // pullup
+
+    DDRB |= BACKLIGHT; // Backlight en output
 
     Serial.begin(115200);
+    attachInterrupt(digitalPinToInterrupt(BTN_MODE_PIN), changeMode, FALLING);
+    attachInterrupt(digitalPinToInterrupt(BTN_PGM_PIN), changePgm, FALLING);
     lcd.write("TP3 - IoT");
-    digitalWrite(SCREEN, HIGH);
+    backlightOn();
     delay(2000);
     displayMode(lcd, selMode);
 }
@@ -81,27 +118,16 @@ void setup()
 void loop()
 {
     // Éteins l'écran après 5 secondes d'inactivité
-    if (millis() - prevTime > SLEEP_DELAY)
+    if (!BTN_WAKE_IS_PRESSED && millis() - prevTime > SLEEP_DELAY)
     {
-        digitalWrite(SCREEN, LOW);
+        backlightOff();
     }
 
-    while (isMaintained(btnWake))
+    while (BTN_WAKE_IS_PRESSED)
     {
-        digitalWrite(SCREEN, HIGH);
+        backlightOn();
         prevTime = millis();
-        if (isPressed(btnMode))
-        {
-            selMode = selMode == AUTO ? MANUAL : AUTO;
-            displayMode(lcd, selMode);
-            displayPgm(lcd, selMode, selPgm);
-        }
-        if (isPressed(btnPgm) && selMode == AUTO)
-        {
-            selPgm = (selPgm % 12) + 1; // Min 1, max 12
-            displayPgm(lcd, selMode, selPgm);
-        }
-        delay(10);
+        delay(2000);
     }
 
     delay(10);

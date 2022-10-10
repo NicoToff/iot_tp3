@@ -3,7 +3,7 @@
 // Création d'un type pour les boutons, permettant de retenir leur état
 typedef struct
 {
-    byte pin;
+    byte port;
     boolean *isPressed;
 } button_t;
 
@@ -14,11 +14,11 @@ typedef struct
  */
 boolean isPressed(button_t button)
 {
-    if (!digitalRead(button.pin) && !*(button.isPressed))
+    if ((PINL & button.port) == 0 && !*(button.isPressed))
     {
         return *(button.isPressed) = true;
     }
-    else if (digitalRead(button.pin) && *(button.isPressed))
+    else if ((PINL & button.port) == 1 && *(button.isPressed))
     {
         return *(button.isPressed) = false;
     }
@@ -38,10 +38,10 @@ boolean isMaintained(button_t button, uint8_t wiringMode = INPUT_PULLUP)
 {
     if (wiringMode == INPUT_PULLUP)
     {
-        return !digitalRead(button.pin);
+        return (PINL & button.port) == 0;
     }
     else
     {
-        return digitalRead(button.pin);
+        return (PINL & button.port) == 1;
     }
 }
