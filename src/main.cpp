@@ -17,6 +17,20 @@ const byte ROWS = 2;
 unsigned long prevTime = 0;
 const int SLEEP_DELAY = 5000;
 
+// Variables pour les modes et les programmes
+const char *MODES[] = {"Mode manuel", "Mode automatique"};
+
+enum selMode_t
+{
+    MANUAL, // 0
+    AUTO    // 1
+};
+
+byte selPgm = 1;
+
+selMode_t selMode = MANUAL;
+
+// Création d'un type pour les boutons, permettant de retenir l'état du bouton
 typedef struct
 {
     byte pin;
@@ -25,11 +39,10 @@ typedef struct
 
 boolean btnWake_isBeingPressed = false;
 boolean btnMode_isBeingPressed = false;
-boolean btnProg_isBeingPressed = false;
-button_t buttons[] = {
-    {42, &btnWake_isBeingPressed},
-    {43, &btnMode_isBeingPressed},
-    {44, &btnProg_isBeingPressed}};
+boolean btnPgm_isBeingPressed = false;
+button_t btnWake = {42, &btnWake_isBeingPressed};
+button_t btnMode = {43, &btnMode_isBeingPressed};
+button_t btnPgm = {44, &btnPgm_isBeingPressed};
 
 /**
  * @brief Vérifie l'appui d'un bouton. Ne renvoie `true` qu'une fois par appui.
@@ -52,28 +65,75 @@ boolean isPressed(button_t button)
     }
 }
 
+boolean isMaintained(button_t button)
+{
+    return !digitalRead(button.pin);
+}
+
+void displayMode(LiquidCrystal lcd, selMode_t selMode)
+{
+    lcd.clear();
+    delay(100);
+    lcd.setCursor(0, 0);
+    lcd.print(MODES[selMode]);
+}
+
+void displayPgm(LiquidCrystal lcd, selMode_t selMode, int selPgm)
+{
+    if (selMode == AUTO)
+    {
+        lcd.setCursor(0, 1);
+        lcd.write("PGM");
+        selPgm < 10 && lcd.write("0");
+        lcd.print(selPgm);
+    }
+    else
+    {
+        lcd.setCursor(0, 1);
+        lcd.write("     ");
+    }
+}
+
 void setup()
 {
     lcd.begin(COLS, ROWS);
     pinMode(SCREEN, OUTPUT);
-    for (size_t i = 0; i < sizeof(buttons) / sizeof(button_t); i++)
-    {
-        pinMode(buttons[i].pin, INPUT_PULLUP);
-    }
+
+    pinMode(btnWake.pin, INPUT_PULLUP);
+    pinMode(btnMode.pin, INPUT_PULLUP);
+    pinMode(btnPgm.pin, INPUT_PULLUP);
+
     Serial.begin(115200);
-    lcd.write("Hello");
-    digitalWrite(SCREEN, LOW);
+    lcd.write("TP3 - IoT");
+    digitalWrite(SCREEN, HIGH);
+    delay(1000);
+    lcd.setCursor(0, 0);
+    lcd.write(MODES[selMode]);
 }
 
 void loop()
 {
-    for (size_t i = 0; i < sizeof(buttons) / sizeof(button_t); i++)
+    if (millis() - prevTime > SLEEP_DELAY)
     {
-        if (isPressed(buttons[i]))
+        digitalWrite(SCREEN, LOW);
+    }
+
+    while (isMaintained(btnWake))
+    {
+        digitalWrite(SCREEN, HIGH);
+        prevTime = millis();
+        if (isPressed(btnMode))
         {
-            Serial.print("Button ");
-            Serial.print(i);
-            Serial.println(" just pressed");
+            selMode = (selMode_t)((selMode + 1) % 2);
+            displayMode(lcd, selMode);
+            displayPgm(lcd, selMode, selPgm);
+        }
+        if (isPressed(btnPgm) && selMode == AUTO)
+        {
+            selPgm = (selPgm % 12) + 1;
+            displayPgm(lcd, selMode, selPgm);
         }
     }
+
+    delay(10);
 }
