@@ -71,7 +71,6 @@ void changeMode()
         selMode = selMode == AUTO ? MANUAL : AUTO;
         displayMode(lcd, selMode);
         displayPgm(lcd, selMode, selPgm);
-        delay(1000);
     }
 }
 
@@ -81,7 +80,6 @@ void changePgm()
     {
         selPgm = (selPgm % 12) + 1; // Min 1, max 12
         displayPgm(lcd, selMode, selPgm);
-        delay(1000);
     }
 }
 
