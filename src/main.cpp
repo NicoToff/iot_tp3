@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <LiquidCrystal.h>
+#include "buttons.h"
 
 const byte RS = 8;
 const byte ENABLE = 9;
@@ -30,45 +31,12 @@ byte selPgm = 1;
 
 selMode_t selMode = MANUAL;
 
-// Création d'un type pour les boutons, permettant de retenir l'état du bouton
-typedef struct
-{
-    byte pin;
-    boolean *isPressed;
-} button_t;
-
 boolean btnWake_isBeingPressed = false;
 boolean btnMode_isBeingPressed = false;
 boolean btnPgm_isBeingPressed = false;
 button_t btnWake = {42, &btnWake_isBeingPressed};
 button_t btnMode = {43, &btnMode_isBeingPressed};
 button_t btnPgm = {44, &btnPgm_isBeingPressed};
-
-/**
- * @brief Vérifie l'appui d'un bouton. Ne renvoie `true` qu'une fois par appui.
- * @param button Un objet de type button_t
- * @return `true` quand le bouton vient d'être pressé
- */
-boolean isPressed(button_t button)
-{
-    if (!digitalRead(button.pin) && !*(button.isPressed))
-    {
-        return *(button.isPressed) = true;
-    }
-    else if (digitalRead(button.pin) && *(button.isPressed))
-    {
-        return *(button.isPressed) = false;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-boolean isMaintained(button_t button)
-{
-    return !digitalRead(button.pin);
-}
 
 void displayMode(LiquidCrystal lcd, selMode_t selMode)
 {
@@ -106,13 +74,13 @@ void setup()
     Serial.begin(115200);
     lcd.write("TP3 - IoT");
     digitalWrite(SCREEN, HIGH);
-    delay(1000);
-    lcd.setCursor(0, 0);
-    lcd.write(MODES[selMode]);
+    delay(2000);
+    displayMode(lcd, selMode);
 }
 
 void loop()
 {
+    // Éteins l'écran après 5 secondes d'inactivité
     if (millis() - prevTime > SLEEP_DELAY)
     {
         digitalWrite(SCREEN, LOW);
@@ -124,15 +92,16 @@ void loop()
         prevTime = millis();
         if (isPressed(btnMode))
         {
-            selMode = (selMode_t)((selMode + 1) % 2);
+            selMode = selMode == AUTO ? MANUAL : AUTO;
             displayMode(lcd, selMode);
             displayPgm(lcd, selMode, selPgm);
         }
         if (isPressed(btnPgm) && selMode == AUTO)
         {
-            selPgm = (selPgm % 12) + 1;
+            selPgm = (selPgm % 12) + 1; // Min 1, max 12
             displayPgm(lcd, selMode, selPgm);
         }
+        delay(10);
     }
 
     delay(10);
