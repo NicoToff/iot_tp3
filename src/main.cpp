@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <LiquidCrystal.h>
-#include "buttons.h"
 
 #define BTN_WAKE 1 << PD3
 #define BTN_WAKE_PIN 18
@@ -42,13 +41,6 @@ enum selMode_t
 byte selPgm = 1;
 
 selMode_t selMode = MANUAL;
-
-// boolean btnWake_isBeingPressed = false;
-// boolean btnMode_isBeingPressed = false;
-// boolean btnPgm_isBeingPressed = false;
-// button_t btnWake = {42, &btnWake_isBeingPressed};
-// button_t btnMode = {43, &btnMode_isBeingPressed};
-// button_t btnPgm = {44, &btnPgm_isBeingPressed};
 
 void displayMode(LiquidCrystal lcd, selMode_t selMode)
 {
@@ -97,8 +89,6 @@ void changePgm()
 
 void setup()
 {
-    lcd.begin(COLS, ROWS);
-
     const byte BTN_MASK = (BTN_WAKE | BTN_MODE | BTN_PGM); // == 0b11100000
 
     DDRD |= BTN_MASK;  // Mis à "output"
@@ -109,6 +99,7 @@ void setup()
     Serial.begin(115200);
     attachInterrupt(digitalPinToInterrupt(BTN_MODE_PIN), changeMode, FALLING);
     attachInterrupt(digitalPinToInterrupt(BTN_PGM_PIN), changePgm, FALLING);
+    lcd.begin(COLS, ROWS);
     lcd.write("TP3 - IoT");
     backlightOn();
     delay(2000);
